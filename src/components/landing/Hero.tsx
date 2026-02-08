@@ -1,9 +1,17 @@
-
 import { IoPersonSharp, IoChatbubbles } from "react-icons/io5";
 import { FaUserFriends } from "react-icons/fa";
+import React from "react";
+import RoomCard from "./RoomCard";
 
 function Hero() {
+  const[roomModal,setRoomModal] = React.useState(false);
+  
+  
+  const handlePlayButton = () => {
+    setRoomModal(true);
+  }
   return (
+    <>
     <section className="w-full max-w-6xl mx-auto flex flex-col lg:flex-row gap-10 px-4 py-10 items-center">
       
       {/* LEFT */}
@@ -36,8 +44,9 @@ function Hero() {
               active:shadow-[0_3px_0_#5b21b6,0_6px_12px_rgba(0,0,0,0.25)]
               border-2 border-black
             "
+            onClick={handlePlayButton}
           >
-            Join a Room
+            Let's Play
           </button>
         </div>
       </div>
@@ -87,6 +96,12 @@ function Hero() {
         </div>
       </div>
     </section>
+
+          {/* Room Modal */}
+          {roomModal && (
+            <RoomCard/>
+          )}
+    </>
   );
 }
 
