@@ -5,9 +5,15 @@ import RoomCard from "./RoomCard";
 
 function Hero() {
   const[roomModal,setRoomModal] = React.useState(false);
-  
+  const[name,setName] = React.useState("");
+  const[error,setError] = React.useState("");
   
   const handlePlayButton = () => {
+    if (!name.trim()) {
+      setError("Opps! Please enter your name to play.");
+      return;
+    }
+    setError("");
     setRoomModal(true);
   }
   return (
@@ -30,7 +36,17 @@ function Hero() {
             type="text"
             placeholder="Enter your name"
             className="px-4 py-2 rounded-full border bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500 w-full"
+            value={name}
+            onChange={(e)=>setName(e.target.value)}
+
           />
+          {
+            error &&
+            <p className="text-red-500 font-display font-medium ">
+              {error}
+            </p>
+            
+          }
 
           <button
             className="
@@ -99,7 +115,7 @@ function Hero() {
 
           {/* Room Modal */}
           {roomModal && (
-            <RoomCard/>
+            <RoomCard onClose={() => setRoomModal(false)} />
           )}
     </>
   );

@@ -1,65 +1,128 @@
-import React from 'react'
+import React, { useState } from "react";
+import { MdCancel } from "react-icons/md";
+import { Bounce, ToastContainer, toast } from 'react-toastify';
 
-function RoomCard() {
+type Props = {
+  onClose?: () => void;
+};
 
+function RoomCard({ onClose }: Props) {
+  const [roomCode, setRoomCode] = useState("");
+   const notify = (message:string) => toast(message, {
+      position: "bottom-right",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: false,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "light",
+      transition: Bounce,
+    });
 
-    const handleCreateRoom = () => {
-        alert("Create Room button clicked! Implement room creation logic here.");
-    }
+  const handleCreateRoom = () => {
+   notify("Create room functionality coming soon!");
+  };
 
-    const handleJoinRoom = () => {
-        alert("Join Room button clicked! Implement room joining logic here.");
-    }
+  const handleJoinRoom = () => {
+    if (!roomCode.trim()) return;
+    notify(`Join Room functionality coming soon! You entered:${roomCode}`)
+  };
 
+  return (
+    /* Backdrop */
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
 
-    return (
-        <div className='flex flex-col items-center justify-center font-display gap-6 p-8 bg-violet-100 rounded-2xl shadow-lg w-full max-w-md mx-auto fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50'>
-            <h3 className="text-2xl font-bold font-display text-violet-600">Create Or Join Room</h3>
-            <div className='flex  flex-col gap-4 mt-6 font-medium'>
-                <button className='px-4 py-2 bg-violet-500 text-white rounded-full hover:bg-violet-600  
-                    bg-linear-to-b from-violet-500 to-violet-600
-                    shadow-[0_6px_0_#5b21b6,0_10px_20px_rgba(0,0,0,0.25)]
-                    transition-all duration-150
-                    active:translate-y-0.5
-                    active:shadow-[0_3px_0_#5b21b6,0_6px_12px_rgba(0,0,0,0.25)] border-2 border-black'
-                    >
-                       Create Room 
-                    </button>
+      {/* Modal Card */}
+      <div className="w-full max-w-md rounded-3xl bg-violet-100 p-8 shadow-2xl font-display">
 
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <div className="flex-1 h-px bg-gray-300" />
-                    OR
-                    <div className="flex-1 h-px bg-gray-300" />
-                </div>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h3 className="text-2xl font-bold text-violet-600">
+            Create or Join Room
+          </h3>
 
-
-                <div className='flex flex-col gap-4 font-medium'>
-                    <input
-                        type="text"
-                        placeholder="Enter Code"
-                        className="px-4 py-2 rounded-full border bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500 w-full font-medium
-                        "
-                    />
-
-                    <button className='px-4 py-2 bg-violet-500 text-white rounded-full hover:bg-violet-600  
-                    bg-linear-to-b from-violet-500 to-violet-600
-                    shadow-[0_6px_0_#5b21b6,0_10px_20px_rgba(0,0,0,0.25)]
-                    transition-all duration-150
-                    active:translate-y-0.5
-                    active:shadow-[0_3px_0_#5b21b6,0_6px_12px_rgba(0,0,0,0.25)] border-2 border-black'
-                    >
-                        Join Room
-                    </button>
-
-
-                </div>
-
-
-            </div>
-
-
+          <MdCancel
+            onClick={onClose}
+            className="cursor-pointer text-2xl text-violet-300 hover:text-violet-600 transition"
+          />
         </div>
-    )
+
+        {/* Content */}
+        <div className="mt-6 flex flex-col gap-4 font-medium">
+
+          {/* Create Room */}
+          <button
+            onClick={handleCreateRoom}
+            className="
+              rounded-full border-2 border-black
+              bg-linear-to-b from-violet-500 to-violet-600
+              px-4 py-2 text-white
+              shadow-[0_6px_0_#5b21b6,0_10px_20px_rgba(0,0,0,0.25)]
+              transition-all duration-150
+              hover:brightness-110
+              active:translate-y-0.5
+              active:shadow-[0_3px_0_#5b21b6,0_6px_12px_rgba(0,0,0,0.25)]
+            "
+          >
+            Create Room
+          </button>
+         
+
+          {/* Divider */}
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className="h-px flex-1 bg-gray-300" />
+            OR
+            <div className="h-px flex-1 bg-gray-300" />
+          </div>
+
+          {/* Join Section */}
+          <input
+            type="text"
+            placeholder="Enter Code"
+            value={roomCode}
+            onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+            className="
+              w-full rounded-full border border-gray-300 bg-white
+              px-4 py-2 font-medium outline-none
+              focus:ring-2 focus:ring-violet-500
+            "
+          />
+
+          <button
+            onClick={handleJoinRoom}
+            disabled={!roomCode.trim()}
+            className="
+              rounded-full border-2 border-black
+              bg-linear-to-b from-violet-500 to-violet-600
+              px-4 py-2 text-white
+              shadow-[0_6px_0_#5b21b6,0_10px_20px_rgba(0,0,0,0.25)]
+              transition-all duration-150
+              hover:brightness-110
+              active:translate-y-0.5
+              active:shadow-[0_3px_0_#5b21b6,0_6px_12px_rgba(0,0,0,0.25)]
+              disabled:opacity-40 disabled:cursor-not-allowed
+            "
+          >
+            Join Room
+          </button>
+        </div>
+      </div>
+       <ToastContainer
+            position="bottom-right"
+            autoClose={5000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick={false}
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light"
+            transition={Bounce}
+          />
+    </div>
+  );
 }
 
-export default RoomCard
+export default RoomCard;
