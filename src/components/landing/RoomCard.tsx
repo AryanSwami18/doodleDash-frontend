@@ -3,7 +3,7 @@ import { MdCancel } from "react-icons/md";
 import { Bounce, ToastContainer, toast } from 'react-toastify';
 import { useNavigate } from "react-router-dom";
 import { socket } from "../../lib/socket";
-import {getPlayerId} from "../../lib/player.ts";
+import { getPlayerId } from "../../lib/player.ts";
 type Props = {
   onClose?: () => void;
   name: string;
@@ -36,21 +36,21 @@ function RoomCard({ onClose, name }: Props) {
       navigate(`/room/${roomId}`);
     });
 
-    socket.on("room-joined", ({ roomId }) => {
-      setIsLoading(false);
-      notify("Joined successfully! Redirecting...");
-      navigate(`/room/${roomId}`);
-    });
+    // socket.on("room-joined", ({ roomId }) => {
+    //   setIsLoading(false);
+    //   notify("Joined successfully! Redirecting...");
+    //   navigate(`/room/${roomId}`);
+    // });
 
-    socket.on("room-error", (message: string) => {
+    socket.on("room-not-found", (data: { message: string }) => {
       setIsLoading(false);
-      notify(`Error: ${message}`);
+      notify(`Error: ${data.message}`);
     });
 
     return () => {
       socket.off("room-created");
-      socket.off("room-joined");
-      socket.off("room-error");
+      // socket.off("room-joined");
+      socket.off("room-not-found");
     };
   }, [navigate]);
 
@@ -69,7 +69,7 @@ function RoomCard({ onClose, name }: Props) {
     if (!name.trim()) return notify("Enter your name first!");
     const playerId = getPlayerId();
     setIsLoading(true);
-    socket.emit("join-room", { roomId: roomCode, name, playerId });
+    navigate(`/room/${roomCode}`);
   };
 
   return (

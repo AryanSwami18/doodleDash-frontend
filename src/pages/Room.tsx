@@ -1,35 +1,324 @@
-import React, { useEffect } from 'react'
-import { useParams } from 'react-router-dom';
-import { socket } from '../lib/socket';
-import { getPlayerId, getPlayerName } from '../lib/player';
+import React, { use, useEffect, useRef, useState } from "react";
+import { useParams } from "react-router-dom";
+import { socket } from "../lib/socket";
+import { getPlayerId, getPlayerName, setPlayerName } from "../lib/player";
+import Rank from "../components/room/Rank";
+import Canvas from "../components/room/Canvas";
+import Chat from "../components/room/Chat";
+
 function Room() {
   const { roomId } = useParams();
   const playerId = getPlayerId();
-  const name = getPlayerName();
+  const [name, setName] = useState<string | null>(getPlayerName());
+  const [players, setPlayers] = useState<any[]>([]);
+  const [gameState, setGameState] = useState<"waiting" | "in-progress" | "finished">("waiting");
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [tempName, setTempName] = useState("");
+  const [showRoundStartModal, setShowRoundStartModal] = useState(false);
+  const [currentDrawerId, setCurrentDrawerId] = useState<string | null>(null);
+  const drawer = players.find(p => p.id === currentDrawerId);
+  const prevDrawerRef = useRef<string | null>(null);
 
-  useEffect(()=>{
-    if(!socket.connected){
+  const [showRoundEndModal, setShowRoundEndModal] = useState(false);
+  const [lastWord, setLastWord] = useState("");
+
+  const [showRoundSummary, setShowRoundSummary] = useState(false);
+  const [roundInfo, setRoundInfo] = useState<{
+    round: number;
+    nextRound: number;
+  } | null>(null);
+
+
+  const [activePanel, setActivePanel] = useState<
+    "canvas" | "rank" | "chat"
+  >("canvas");
+
+  const handleNameSubmit = () => {
+    if (!tempName.trim()) return;
+
+    const finalName = tempName.trim();
+
+    setPlayerName(finalName); // localStorage
+    setName(finalName);
+    setShowNameModal(false);
+  };
+
+  useEffect(() => {
+    const handler = ({ round, nextRound }: any) => {
+      setRoundInfo({ round, nextRound });
+      setShowRoundSummary(true);
+
+      setTimeout(() => {
+        setShowRoundSummary(false);
+      }, 4000);
+    };
+
+    socket.on("round-finished", handler);
+
+    return () => {
+      socket.off("round-finished", handler);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handler = ({ drawerId }: { drawerId: string }) => {
+      setCurrentDrawerId(drawerId);
+
+
+      setShowRoundStartModal(true);
+
+      setTimeout(() => {
+        setShowRoundStartModal(false);
+      }, 3000);
+    };
+
+    socket.on("round-start", handler);
+
+    return () => {
+      socket.off("round-start", handler);
+    };
+  }, []);
+
+
+  useEffect(() => {
+    if (!socket.connected) {
       socket.connect();
     }
 
-    socket.emit("join-room",{roomId,name,playerId});
-      socket.on("room-not-found",()=>{
-        alert("Room not found!");
-      })    
+    if (!roomId) return;
 
-    socket.on("players-update",(players)=>{
-      console.log("Players in room:",players)
-      })
-      return ()=>{
-        socket.off("room-not-found")
-        socket.off("players-update")
-        }
-      ;
-  });
-  
+    if (!name) {
+      setShowNameModal(true);
+      return
+    }
+
+    socket.emit("join-room", { roomId, name, playerId });
+
+    socket.on("room-not-found", () => {
+      alert("Room not found!");
+
+      navigation.back();
+    });
+
+    socket.on("players-update", (data) => {
+      setPlayers(data.players);
+    });
+
+    socket.on("round-start", () => {
+      console.log("Here");
+
+      setGameState("in-progress");
+    });
+
+    socket.on("game-paused", () => {
+      setGameState("waiting");
+    });
+
+    socket.on("game-state", ({ gameState }) => {
+      if (gameState === "in-progress") {
+        setGameState("in-progress");
+      } else {
+        setGameState("waiting");
+      }
+    });
+
+
+    return () => {
+      socket.off("room-not-found");
+      socket.off("players-update");
+      socket.off("round-start");
+      socket.off("game-paused");
+      socket.off("game-state");
+      socket.off("players-update");
+    };
+
+
+  }, [roomId, name]);
+
+
+  useEffect(() => {
+    const handler = ({ word }: { word: string }) => {
+      setLastWord(word);
+      setShowRoundEndModal(true);
+
+      setTimeout(() => {
+        setShowRoundEndModal(false);
+      }, 4000);
+    };
+
+    socket.on("round-end", handler);
+
+    return () => {
+      socket.off("round-end", handler);
+    };
+  }, []);
+
   return (
-    <div>Room {roomId}</div>
-  )
+
+
+    <div className="relative h-[100dvh] w-full font-display bg-blue-300 overflow-hidden">
+
+      {showRoundSummary && roundInfo && (
+        <div className="absolute inset-0 z-[120] flex items-center justify-center bg-black/70">
+
+          <div className="bg-white rounded-2xl border-2 border-black shadow-xl p-6 w-[90%] max-w-md text-center">
+
+            <h2 className="text-xl font-bold mb-2">
+              🏁 Round {roundInfo.round} Finished!
+            </h2>
+
+            <p className="text-gray-600 mb-4">
+              Next Round: <span className="font-bold">{roundInfo.nextRound}</span>
+            </p>
+
+            {/* Leaderboard */}
+            <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
+              {[...players]
+                .sort((a, b) => b.score - a.score)
+                .map((player, index) => (
+                  <div
+                    key={player.id}
+                    className={`
+                flex justify-between items-center px-3 py-2 rounded-lg border
+                ${index === 0 ? "bg-yellow-100 font-bold" : "bg-gray-100"}
+              `}
+                  >
+                    <span>
+                      {index + 1}. {player.name}
+                    </span>
+                    <span>{player.score}</span>
+                  </div>
+                ))}
+            </div>
+
+            <p className="text-xs text-gray-500 mt-3">
+              Starting next round...
+            </p>
+
+          </div>
+        </div>
+      )}
+
+      {
+        showRoundEndModal && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50">
+            <div className="bg-green-500 text-white px-6 py-2 rounded-xl border-2 border-black shadow-lg font-semibold">
+              🎉Word was: {lastWord
+              }
+            </div>
+          </div>
+        )
+      }
+
+      {showRoundStartModal && currentDrawerId && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50">
+          <div className="bg-violet-500 text-white px-6 py-2 rounded-xl border-2 border-black shadow-lg font-semibold">
+            🎨 {drawer?.name || "Someone"} is drawing!
+          </div>
+        </div>
+      )}
+      {showNameModal && (
+        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/70">
+          <div className="bg-white p-6 rounded-xl shadow-lg text-center w-80">
+            <h2 className="text-xl font-bold mb-3">Enter Your Name</h2>
+
+            <input
+              type="text"
+              value={tempName}
+              onChange={(e) => setTempName(e.target.value)}
+              className="w-full border px-3 py-2 rounded mb-3"
+              placeholder="Your name"
+            />
+
+            <button
+              onClick={handleNameSubmit}
+              className="bg-violet-500 text-white px-4 py-2 rounded w-full"
+            >
+              Join Game
+            </button>
+          </div>
+        </div>
+      )}
+
+      {gameState === "waiting" && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-white px-6 py-4 rounded-xl shadow-lg text-center">
+            <h2 className="text-xl font-bold">Waiting for players...</h2>
+            <p className="text-gray-600 mt-2">
+              Invite friends to join the room
+            </p>
+            <p className="mt-2 text-sm">Room ID: {roomId}</p>
+          </div>
+        </div>
+      )}
+
+      <div className={`h-full w-full overflow-hidden ${gameState === "waiting" ? "blur-sm pointer-events-none" : ""}`}>
+
+        {/* DESKTOP (large screens and up) */}
+        <div className="hidden lg:flex h-full w-full gap-4 p-4">
+          <Rank players={players} />
+          <Canvas roomId={roomId!} currentDrawerId={currentDrawerId} playerId={playerId} />
+          <Chat roomId={roomId!} />
+        </div>
+
+        {/* MOBILE + TABLET */}
+        <div className="lg:hidden h-full w-full relative">
+
+          <div className={activePanel === "canvas" ? "block h-full w-full" : "hidden"}>
+            <Canvas
+              roomId={roomId!}
+              currentDrawerId={currentDrawerId}
+              playerId={playerId}
+            />
+          </div>
+
+
+          {activePanel === "rank" && (
+            <div className="h-full w-full">
+              <Rank players={players} />
+            </div>
+          )}
+
+          {activePanel === "chat" && (
+            <div className="h-full w-full">
+              <Chat roomId={roomId!} />
+            </div>
+          )}
+
+          {/* Floating Buttons */}
+          <button
+            onClick={() =>
+              setActivePanel(activePanel === "rank" ? "canvas" : "rank")
+            }
+            className="
+          absolute left-3 top-1/2 -translate-y-1/2
+          bg-violet-500 text-white
+          px-3 py-2 rounded-full
+          border-2 border-black
+          shadow-md
+        "
+          >
+            🏆
+          </button>
+
+          <button
+            onClick={() =>
+              setActivePanel(activePanel === "chat" ? "canvas" : "chat")
+            }
+            className="
+          absolute right-3 top-1/2 -translate-y-1/2
+          bg-violet-500 text-white
+          px-3 py-2 rounded-full
+          border-2 border-black
+          shadow-md
+        "
+          >
+            💬
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-export default Room
+export default Room;
