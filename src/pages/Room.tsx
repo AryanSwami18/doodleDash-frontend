@@ -1,4 +1,4 @@
-import React, { use, useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { socket } from "../lib/socket";
 import { getPlayerId, getPlayerName, setPlayerName } from "../lib/player";
@@ -18,7 +18,6 @@ function Room() {
   const [showRoundStartModal, setShowRoundStartModal] = useState(false);
   const [currentDrawerId, setCurrentDrawerId] = useState<string | null>(null);
   const drawer = players.find(p => p.id === currentDrawerId);
-  const prevDrawerRef = useRef<string | null>(null);
   const [showGameEnd, setShowGameEnd] = useState(false);
   const [finalPlayers, setFinalPlayers] = useState<any[]>([]);
   const[drawWord,setDrawWord] = useState<string | null>(null);
@@ -121,7 +120,7 @@ function Room() {
     socket.on("room-not-found", () => {
       alert("Room not found!");
 
-      navigation.back();
+      window.history.back();
     });
 
     socket.on("players-update", (data) => {
