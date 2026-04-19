@@ -5,11 +5,14 @@ type CanvasProps = {
   roomId: string;
   currentDrawerId: string | null;
   playerId: string;
+  drawWord: string | null;
+  wordLength: number;
 };
 
-function Canvas({ roomId, currentDrawerId, playerId }: CanvasProps) {
+function Canvas({ roomId, currentDrawerId, playerId, drawWord, wordLength }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
+
 
   const [drawing, setDrawing] = useState(false);
   const [color, setColor] = useState("#000000");
@@ -19,6 +22,10 @@ function Canvas({ roomId, currentDrawerId, playerId }: CanvasProps) {
   const animationFrameRef = useRef<number | null>(null);
 
   const isDrawer = playerId === currentDrawerId;
+
+  const displayWord = isDrawer
+    ? drawWord
+    : "_ ".repeat(wordLength).trim();
 
   // 🎯 Init canvas
   useEffect(() => {
@@ -197,15 +204,14 @@ function Canvas({ roomId, currentDrawerId, playerId }: CanvasProps) {
       <div className="flex-1 bg-white rounded-xl border-2 border-black shadow-inner relative overflow-hidden">
 
         <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-violet-500 text-white px-3 py-1 rounded-full text-xs font-bold border-2 border-black shadow-md">
-          Drawing Board
+           {displayWord || "Drawing Board"}
         </div>
 
         <canvas
           ref={canvasRef}
           style={{ touchAction: "none" }}
-          className={`w-full h-full rounded-xl ${
-            isDrawer ? "cursor-crosshair" : "cursor-not-allowed opacity-70"
-          }`}
+          className={`w-full h-full rounded-xl ${isDrawer ? "cursor-crosshair" : "cursor-not-allowed opacity-70"
+            }`}
           onMouseDown={handleStart}
           onMouseUp={handleEnd}
           onMouseMove={handleMove}
@@ -226,9 +232,8 @@ function Canvas({ roomId, currentDrawerId, playerId }: CanvasProps) {
               key={c}
               onClick={() => setColor(c)}
               style={{ backgroundColor: c }}
-              className={`w-8 h-8 rounded-full border-2 border-black ${
-                color === c ? "ring-2 ring-black scale-110" : ""
-              }`}
+              className={`w-8 h-8 rounded-full border-2 border-black ${color === c ? "ring-2 ring-black scale-110" : ""
+                }`}
             />
           ))}
         </div>

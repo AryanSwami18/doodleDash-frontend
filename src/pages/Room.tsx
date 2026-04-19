@@ -5,6 +5,7 @@ import { getPlayerId, getPlayerName, setPlayerName } from "../lib/player";
 import Rank from "../components/room/Rank";
 import Canvas from "../components/room/Canvas";
 import Chat from "../components/room/Chat";
+import Confetti from "react-confetti";
 
 function Room() {
   const { roomId } = useParams();
@@ -18,9 +19,15 @@ function Room() {
   const [currentDrawerId, setCurrentDrawerId] = useState<string | null>(null);
   const drawer = players.find(p => p.id === currentDrawerId);
   const prevDrawerRef = useRef<string | null>(null);
+  const [showGameEnd, setShowGameEnd] = useState(false);
+  const [finalPlayers, setFinalPlayers] = useState<any[]>([]);
+  const[drawWord,setDrawWord] = useState<string | null>(null);
+  const [wordLength, setWordLength] = useState<number>(0);
 
   const [showRoundEndModal, setShowRoundEndModal] = useState(false);
   const [lastWord, setLastWord] = useState("");
+  const sortedPlayers = [...finalPlayers].sort((a, b) => b.score - a.score);
+  const winner = sortedPlayers[0];
 
   const [showRoundSummary, setShowRoundSummary] = useState(false);
   const [roundInfo, setRoundInfo] = useState<{
@@ -44,6 +51,19 @@ function Room() {
   };
 
   useEffect(() => {
+    const handler = ({ leaderBoard }: any) => {
+      setFinalPlayers(leaderBoard);
+      setShowGameEnd(true);
+    };
+
+    socket.on("game-ended", handler);
+
+    return () => {
+      socket.off("game-ended", handler);
+    };
+  }, []);
+
+  useEffect(() => {
     const handler = ({ round, nextRound }: any) => {
       setRoundInfo({ round, nextRound });
       setShowRoundSummary(true);
@@ -63,9 +83,13 @@ function Room() {
   useEffect(() => {
     const handler = ({ drawerId }: { drawerId: string }) => {
       setCurrentDrawerId(drawerId);
-
+      setWordLength(wordLength);
 
       setShowRoundStartModal(true);
+
+      if (playerId !== drawerId) {
+      setDrawWord(null);
+    }
 
       setTimeout(() => {
         setShowRoundStartModal(false);
@@ -105,8 +129,6 @@ function Room() {
     });
 
     socket.on("round-start", () => {
-      console.log("Here");
-
       setGameState("in-progress");
     });
 
@@ -123,6 +145,10 @@ function Room() {
     });
 
 
+    socket.on("your-word", ({ word }: { word: string }) => {
+      setDrawWord(word);
+    });
+
     return () => {
       socket.off("room-not-found");
       socket.off("players-update");
@@ -137,9 +163,12 @@ function Room() {
 
 
   useEffect(() => {
+    
+    
     const handler = ({ word }: { word: string }) => {
       setLastWord(word);
       setShowRoundEndModal(true);
+      console.log("here"+word);
 
       setTimeout(() => {
         setShowRoundEndModal(false);
@@ -153,10 +182,69 @@ function Room() {
     };
   }, []);
 
+  useEffect(() => {
+    socket.on("game-restarted", () => {
+      setShowGameEnd(false);
+    });
+
+    return () => {
+      socket.off("game-restarted");
+    };
+  }, []);
+
   return (
 
 
     <div className="relative h-[100dvh] w-full font-display bg-blue-300 overflow-hidden">
+
+      {showGameEnd && (
+        <div className="absolute inset-0 z-[200] flex items-center justify-center bg-black/70">
+
+          {/* 🎉 Confetti */}
+          <Confetti />
+
+          <div className="bg-white rounded-2xl border-2 border-black shadow-xl p-6 w-[90%] max-w-md text-center">
+
+            {/* Winner */}
+            <h2 className="text-2xl font-bold mb-2">
+              🏆 {winner?.name} Wins!
+            </h2>
+
+            <p className="text-gray-600 mb-4">
+              Final Score: {winner?.score}
+            </p>
+
+            {/* Leaderboard */}
+            <div className="flex flex-col gap-2 max-h-60 overflow-y-auto mb-4">
+              {sortedPlayers.map((player, index) => (
+                <div
+                  key={player.id}
+                  className={`
+              flex justify-between items-center px-3 py-2 rounded-lg border
+              ${index === 0 ? "bg-yellow-100 font-bold" : "bg-gray-100"}
+            `}
+                >
+                  <span>
+                    {index + 1}. {player.name}
+                  </span>
+                  <span>{player.score}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Restart Button (ONLY HOST) */}
+            {sortedPlayers.find(p => p.id === playerId)?.isHost && (
+              <button
+                onClick={() => socket.emit("restart-game", { roomId })}
+                className="w-full bg-violet-500 text-white px-4 py-2 rounded-xl border-2 border-black shadow-md"
+              >
+                🔄 Restart Game
+              </button>
+            )}
+
+          </div>
+        </div>
+      )}
 
       {showRoundSummary && roundInfo && (
         <div className="absolute inset-0 z-[120] flex items-center justify-center bg-black/70">
@@ -257,7 +345,8 @@ function Room() {
         {/* DESKTOP (large screens and up) */}
         <div className="hidden lg:flex h-full w-full gap-4 p-4">
           <Rank players={players} />
-          <Canvas roomId={roomId!} currentDrawerId={currentDrawerId} playerId={playerId} />
+          <Canvas roomId={roomId!} currentDrawerId={currentDrawerId} playerId={playerId} drawWord={drawWord}
+          wordLength={wordLength} />
           <Chat roomId={roomId!} />
         </div>
 
@@ -269,6 +358,8 @@ function Room() {
               roomId={roomId!}
               currentDrawerId={currentDrawerId}
               playerId={playerId}
+              drawWord={drawWord}
+              wordLength={wordLength}
             />
           </div>
 
