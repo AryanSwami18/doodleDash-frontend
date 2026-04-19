@@ -10,8 +10,6 @@ export const socket = io(url, {
 
 socket.on("connect_error",()=>{
       console.error("Connection Error. Retrying...");
-      setTimeout(()=>{
-         socket.connect();
-      },1000);
+      socket.connect();
 });
    
