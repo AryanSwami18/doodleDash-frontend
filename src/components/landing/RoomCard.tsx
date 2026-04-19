@@ -67,7 +67,6 @@ function RoomCard({ onClose, name }: Props) {
   const handleJoinRoom = () => {
     if (!roomCode.trim()) return;
     if (!name.trim()) return notify("Enter your name first!");
-    const playerId = getPlayerId();
     setIsLoading(true);
     navigate(`/room/${roomCode}`);
   };

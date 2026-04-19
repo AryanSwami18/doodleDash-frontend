@@ -1,5 +1,3 @@
-import React from 'react'
-
 type props = {
   type: "chat" | "system";
   player?: string;
